@@ -1,0 +1,60 @@
+# ==============================================================================
+# UNSEEN: Default Research Configuration
+# Project ID: 27DSAI
+# ==============================================================================
+
+experiment:
+  name: "unseen_baseline_audit"
+  random_seed: 42
+  log_level: "INFO"
+
+pipeline:
+  # Stage 1 & 2: Time window for coverage observation
+  coverage_window_days_before: 0
+  coverage_window_days_after: 7
+
+  # Stage 3: Event-Article Matching
+  retrieval:
+    top_k_candidates: 50
+    lexical_model: "bm25"
+    dense_model: "sentence-transformers/all-MiniLM-L6-v2"
+    semantic_threshold: 0.65
+
+  # Stage 5: Expected Coverage Prediction
+  modeling:
+    baseline_model: "logistic_regression"  # Options: logistic_regression, hierarchical_logit, lightgbm, xgboost
+    cv_folds: 5
+    test_size: 0.2
+    temporal_split: true  # Maintain temporal order to avoid lookahead bias
+
+  # Stage 6: Counterfactual Matching
+  counterfactual:
+    method: "nearest_neighbor"  # Options: nearest_neighbor, propensity_score, mahalanobis
+    k_matches: 5
+    similarity_metrics:
+      - "severity_score"
+      - "geographic_region"
+      - "event_type"
+      - "temporal_distance"
+
+  # Stage 7: Anomaly Scoring
+  anomaly:
+    score_method: "residual"  # Options: residual, probabilistic_tail, relative_deviation
+    significance_alpha: 0.05
+    min_expected_prob_threshold: 0.70  # Only flag as blind spot if expected coverage >= threshold
+
+  # Stage 8: Calibration
+  calibration:
+    method: "isotonic"  # Options: platt_scaling, isotonic, temperature_scaling
+    n_bins: 10
+
+  # Stage 9: Explainability
+  explainability:
+    compute_shap: true
+    top_n_features: 8
+
+data:
+  raw_dir: "data/raw"
+  interim_dir: "data/interim"
+  processed_dir: "data/processed"
+  initial_domain: "natural_disasters"
